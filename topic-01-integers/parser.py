@@ -6,11 +6,28 @@ parser.py -- implement parser for simple expressions
 Accept a string of tokens, return an AST expressed as stack of dictionaries
 """
 
-"""
+ebnf = """
     factor = <number> | <identifier> | "(" expression ")"
     term = factor { "*"|"/" factor }
     expression = term { "+"|"-" term }
     statement = <print> expression | expression
+"""
+
+bnf = """
+    factor = <number>
+    factor = <identifier> 
+    factor = "(" expression ")"    
+
+    term = factor
+    term = term * factor
+    term = term / factor
+
+    expression = term
+    expression = expression + term
+    expression = expression - term 
+
+    statement = <print> expression
+    statement = expression
 """
 
 def parse_factor(tokens):
@@ -143,9 +160,16 @@ def parse(tokens):
     ast, tokens = parse_statement(tokens)
     return ast
 
+def test_parse():
+    tokens = tokenize("1+(2+3)*9)")
+    ast1, _ = parse_statement(tokens)
+    ast2 = parse(tokens)
+    assert ast1 == ast2, "parse() is no evaluating via parse_expressions()"
+
 if __name__ == "__main__":
     test_parse_factor()
     test_parse_term()
     test_parse_expression()
     test_parse_statement()
+    test_parse()
     print("done.")
