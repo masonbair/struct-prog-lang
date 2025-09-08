@@ -48,7 +48,7 @@ def parse_factor(tokens):
 
 def test_parse_factor():
     """
-    factor = <number> | <identifier> | "(" expression ")"
+    factor = <number> | "(" expression ")"
     """
     print("testing parse_factor()")
     for s in ["1","22","333"]:
@@ -157,7 +157,10 @@ def test_parse_statement():
 
 
 def parse(tokens):
-    ast, tokens = parse_statement(tokens)
+    """
+        program = expression
+    """
+    ast, _ = parse_statement(tokens)
     return ast
 
 def test_parse():
@@ -171,5 +174,6 @@ if __name__ == "__main__":
     test_parse_term()
     test_parse_expression()
     test_parse_statement()
+    test_parse()
     test_parse()
     print("done.")
