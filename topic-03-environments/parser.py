@@ -11,24 +11,9 @@ ebnf = """
     term = factor { "*"|"/" factor }
     expression = term { "+"|"-" term }
     statement = <print> expression | expression
+    program = expression { ";" expression }
 """
 
-bnf = """
-    factor = <number>
-    factor = <identifier> 
-    factor = "(" expression ")"    
-
-    term = factor
-    term = term * factor
-    term = term / factor
-
-    expression = term
-    expression = expression + term
-    expression = expression - term 
-
-    statement = <print> expression
-    statement = expression
-"""
 
 def parse_factor(tokens):
     """
@@ -40,10 +25,16 @@ def parse_factor(tokens):
             "tag":"number",
             "value": token["value"]
         }, tokens[1:]
+    if token["tag"] == "identifier":
+        return {
+            "tag":"identifier",
+            "value": token["value"]
+        }, tokens[1:]
     if token["tag"] == "(":
         ast, tokens = parse_expression(tokens[1:])
         assert tokens[0]["tag"] == ")"
         return ast, tokens[1:]
+    
     raise Exception(f"Unexpected token '{token['tag']}' at position {token['position']}.")
 
 def test_parse_factor():
@@ -65,7 +56,11 @@ def test_parse_factor():
     tokens = tokenize("(2+3)")
     ast, tokens = parse_factor(tokens)
     assert ast == {'tag': '+', 'left': {'tag': 'number', 'value': 2}, 'right': {'tag': 'number', 'value': 3}}
-
+    tokens = tokenize("x+y+z")
+    ast, tokens = parse_factor(tokens)
+    assert ast == {'tag': 'identifier', 'value': 'x'}
+    assert tokens == [{'tag': '+', 'position': 1, 'value': '+'}, {'tag': 'identifier', 'position': 2, 'value': 'y'}, {'tag': '+', 'position': 3, 'value': '+'}, {'tag': 'identifier', 'position': 4, 'value': 'z'}, {'tag': None, 'value': None, 'position': 5}]
+    
 def parse_term(tokens):
     """
     term = factor { "*"|"/" factor }
@@ -154,26 +149,56 @@ def test_parse_statement():
     ast, tokens = parse_statement(tokens)
     assert ast == {'tag': 'print', 'value': {'tag': '*', 'left': {'tag': 'number', 'value': 2}, 'right': {'tag': 'number', 'value': 4}}}
 
+def parse_program(tokens):
+    """
+    program = [ statement { ";" statement } ] ;
+    """
+    statements = []
+    if tokens[0]["tag"]:
+        statement, tokens = parse_statement(tokens)
+        statements.append(statement)
+        while tokens[0]["tag"] == ";":
+            tokens = tokens[1:]
+            statement, tokens = parse_statement(tokens)
+            statements.append(statement)
+    assert (
+        tokens[0]["tag"] == None
+    ), f"Expected end of input at position {tokens[0]['position']}, got [{tokens[0]}]"
+    return {"tag": "program", "statements": statements}, tokens[1:]
 
+def test_parse_program():
+    """program = [ statement { ";" statement } ]"""
+    print("testing parse_program...")
+    ast, tokens = parse_program(tokenize("print 1; print 2"))
+    assert ast == {
+        "tag": "program",
+        "statements": [
+            {"tag": "print", "value": {"tag": "number", "value": 1}},
+            {"tag": "print", "value": {"tag": "number", "value": 2}},
+        ],
+    }
 
 def parse(tokens):
-    """
-        program = expression
-    """
-    ast, _ = parse_statement(tokens)
+    ast, _ = parse_program(tokens)
     return ast
 
 def test_parse():
-    tokens = tokenize("1+(2+3)*9)")
-    ast1, _ = parse_statement(tokens)
+    """
+        program = expression
+    """
+    print("testing parse()")
+    tokens = tokenize("1+(2+3)*4")
+    ast1, _ = parse_program(tokens)
     ast2 = parse(tokens)
-    assert ast1 == ast2, "parse() is no evaluating via parse_expressions()"
+    assert ast1 == ast2, "parse() is not evaluating via parse_program()"
+
+
 
 if __name__ == "__main__":
     test_parse_factor()
     test_parse_term()
     test_parse_expression()
     test_parse_statement()
-    test_parse()
+    test_parse_program()
     test_parse()
     print("done.")
