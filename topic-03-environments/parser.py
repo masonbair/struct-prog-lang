@@ -17,7 +17,8 @@ ebnf = """
 
 def parse_factor(tokens):
     """
-    factor = <number> | "(" expression ")"
+
+    factor = <number> | <identifier> | "(" expression ")"
     """
     token = tokens[0]
     if token["tag"] == "number":
@@ -34,12 +35,11 @@ def parse_factor(tokens):
         ast, tokens = parse_expression(tokens[1:])
         assert tokens[0]["tag"] == ")"
         return ast, tokens[1:]
-    
     raise Exception(f"Unexpected token '{token['tag']}' at position {token['position']}.")
 
 def test_parse_factor():
     """
-    factor = <number> | "(" expression ")"
+    factor = <number> | <identifier> | "(" expression ")"
     """
     print("testing parse_factor()")
     for s in ["1","22","333"]:
@@ -60,7 +60,7 @@ def test_parse_factor():
     ast, tokens = parse_factor(tokens)
     assert ast == {'tag': 'identifier', 'value': 'x'}
     assert tokens == [{'tag': '+', 'position': 1, 'value': '+'}, {'tag': 'identifier', 'position': 2, 'value': 'y'}, {'tag': '+', 'position': 3, 'value': '+'}, {'tag': 'identifier', 'position': 4, 'value': 'z'}, {'tag': None, 'value': None, 'position': 5}]
-    
+
 def parse_term(tokens):
     """
     term = factor { "*"|"/" factor }
