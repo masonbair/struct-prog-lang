@@ -38,6 +38,22 @@ def evaluate(ast, environment={}):
             return left_value * right_value
         if ast["tag"] == "/":
             return left_value / right_value
+        
+    if ast["tag"] in ["<",">","<=",">=", "!=","=="]:
+        left_value = evaluate(ast["left"], environment)
+        right_value = evaluate(ast["right"], environment)
+        if ast["tag"] == "<":
+            return left_value < right_value
+        if ast["tag"] == ">":
+            return left_value > right_value
+        if ast["tag"] == "<=":
+            return left_value <= right_value
+        if ast["tag"] == ">=":
+            return left_value >= right_value
+        if ast["tag"] == "!=":
+            return left_value != right_value
+        if ast["tag"] == "==":
+            return left_value == right_value
 
 
 def test_evaluate_number():
