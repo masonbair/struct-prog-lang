@@ -17,6 +17,13 @@ def evaluate(ast, environment={}):
         s = str(value)
         printed_string = s
         print(s)
+        return None
+    if ast["tag"] == "assign":
+        target = ast["target"]
+        assert target["tag"] == "identifier"
+        value = evaluate(ast["value"], environment)
+        environment[target["value"]] = value
+        return None
     if ast["tag"] == "number":
         return ast["value"]
     if ast["tag"] == "identifier":
@@ -54,6 +61,10 @@ def evaluate(ast, environment={}):
             return left_value != right_value
         if ast["tag"] == "==":
             return left_value == right_value
+        if ast["tag"] == "&&":
+            return left_value and right_value
+        if ast["tag"] == "||":
+            return left_value or right_value
 
 
 def test_evaluate_number():
@@ -102,6 +113,37 @@ def test_evaluate_division():
         }
     assert evaluate(ast, {}) == 2
 
+def test_relational_expressions():
+    print("testing relational expressions")
+    # Test equality
+    assert eval("3==3") == True
+    assert eval("4==3") == False
+    
+    # Test inequality
+    assert eval("3!=3") == False
+    assert eval("4!=3") == True
+    
+    # Test less than/greater than
+    assert eval("3<4") == True
+    assert eval("4<3") == False
+    assert eval("3>2") == True
+    assert eval("2>3") == False
+    
+    # Test less than or equal/greater than or equal
+    assert eval("3<=3") == True
+    assert eval("4<=3") == False
+    assert eval("3>=3") == True
+    assert eval("2>=3") == False
+    
+    # Test with variables
+    assert eval("x==y", {"x":5, "y":5}) == True
+    assert eval("x!=y", {"x":5, "y":6}) == True
+    
+    # Test with expressions
+    assert eval("(1+2)==3") == True
+    assert eval("2*3==5+1") == True
+
+
 def eval(s, environment={}):
     tokens = tokenize(s)
     ast = parse(tokens)
@@ -134,7 +176,26 @@ def test_evaluate_print():
     assert eval("print x+y", {"x":2.0,"z":4.0,"$parent":{"$parent":{"y":4.0}}}) == None    
     assert printed_string == "6.0"
 
-
+def test_evaluate_assignment():
+    environment = {}
+    eval("x=3", environment)
+    assert environment['x'] == 3
+    eval("y=4", environment)
+    assert environment['y'] == 4
+    eval("z=x+y", environment)
+    assert environment['z'] == 7
+    eval("x=2", environment)
+    assert environment['x'] == 2
+    environment = {"$parent":{"y":44}}
+    eval("x=3", environment)
+    assert environment['x'] == 3
+    eval("y=4", environment)
+    assert environment['y'] == 4
+    eval("z=x+y", environment)
+    assert environment['z'] == 7
+    eval("x=2", environment)
+    assert environment['x'] == 2
+    assert environment["$parent"]["y"] == 44
 
 if __name__ == "__main__":
     test_evaluate_number()
@@ -145,5 +206,7 @@ if __name__ == "__main__":
     test_evaluate_division()
     test_evaluate_expression()
     test_evaluate_print()
+    test_evaluate_assignment()
+    test_relational_expressions()
     print("done.")
 

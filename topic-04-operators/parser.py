@@ -10,10 +10,14 @@ ebnf = """
     factor = <number> | <identifier> | "(" expression ")"
     term = factor { "*"|"/" factor }
     arithmetic_expression
-    relational_expression
+    relational_expression = arithmetic_expression { < > <= >= == !=}
+
+    logical_factor = relational_expression
+    logical_term = logical_factor { "&&" logical_factor } # And looks like multiplication when it comes to matrices, so that is why it is apart of the factors
+    logical_expression = logical_term { "||" logical_term } # And the OR is the same thing as addition
 
     express = relational_expression
-    statement = <print> expression | expression
+    statement = <print> expression | expression { "=" expression }
     program = expression { ";" expression }
 """
 
@@ -180,7 +184,7 @@ def test_parse_expression():
 
 def parse_statement(tokens):
     """
-    statement = <print> expression | expression
+    statement = <print> expression | expression { "=" expression }
     """
     if tokens[0]["tag"] == "print":
         value_ast, tokens = parse_expression(tokens[1:])
@@ -188,9 +192,17 @@ def parse_statement(tokens):
             'tag':'print',
             'value': value_ast
         }
-
+        return ast, tokens
     else:
         ast, tokens = parse_expression(tokens)
+        if tokens[0]["tag"] == "=":
+            tokens = tokens[1:]
+            value_ast, tokens = parse_expression(tokens)
+            ast = {
+                "tag":"assign",
+                "target": ast,
+                "value": value_ast
+            }
     return ast, tokens
 
 def test_parse_statement():
@@ -204,6 +216,9 @@ def test_parse_statement():
     tokens = tokenize("print 2*4")
     ast, tokens = parse_statement(tokens)
     assert ast == {'tag': 'print', 'value': {'tag': '*', 'left': {'tag': 'number', 'value': 2}, 'right': {'tag': 'number', 'value': 4}}}
+    tokens = tokenize("x=3")
+    ast, tokens = parse_statement(tokens)
+    assert ast == {'tag': 'assign', 'target': {'tag': 'identifier', 'value': 'x'}, 'value': {'tag': 'number', 'value': 3}}
 
 def parse_program(tokens):
     """
