@@ -5,6 +5,11 @@ patterns = [
     [r"print","print"],
     [r"true","true"],
     [r"false","false"],
+    [r"if", 'if'],
+    [r"else", 'else'],
+    [r"while", 'while'],
+    [r"continue", 'continue'],
+    [r"break", 'break']
     [r"\d*\.\d+|\d+\.\d*|\d+", "number"],
     [r"[a-zA-Z_][a-zA-Z0-9_]*", "identifier"],  # identifiers
     [r"\+", "+"],
@@ -136,6 +141,11 @@ def test_keywords():
     print("test keywords...")
     for keyword in [
         "print",
+        "if",
+        "else",
+        "while",
+        "break",
+        "continue",
     ]:
         t = tokenize(keyword)
         assert len(t) == 2

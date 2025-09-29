@@ -17,9 +17,13 @@ ebnf = """
     logical_term = logical_factor { "&&" logical_factor }
     logical_expression = logical_term { "||" logical_term }
 
+
     expression = logical_expression
 
-    statement = <print> expression | expression { "=" expression }
+    if_statement = "if" "(" expression ")" statement_block ["else" statement_block ] 
+
+    statement = <print> expression | expression { "=" expression } | statement_block | if _statement |
+
     statement_block = "{" statement { ";" statement } "}"
 
     program = expression { ";" expression }
@@ -276,6 +280,29 @@ def test_parse_expression():
     ast2, _ = parse_logical_expression(tokenize("1+1"))
     assert ast1 == ast2
 
+def parse_if_statement(tokens):
+    """if_statement = "if" "(" expression ")" statement_block ["else" statement_block ] """
+    assert tokens[0]["tag"] == "if"
+    tokens = tokens[1:]
+    assert tokens[0]["tag"] == "("
+    tokens = tokens[1:]
+
+    condition, tokens = parse_expression(tokens)
+
+    tokens = tokens[1:]
+    then_statement , tokens = parse_statement_block(tokens)
+    else_statement = None
+
+    if tokens[0]["tags"] == "else":
+
+    ast = {
+        "tag": "if",
+        "condition": condition,
+        "then_statement": then_statement,
+        "else_statement": else_statement
+    }
+    return ast
+
 def parse_statement_block(tokens):
     ast = {"tag": "block", "statements": []}
     assert tokens[0]["tag"] == "{"
@@ -289,7 +316,7 @@ def parse_statement_block(tokens):
 
 def parse_statement(tokens):
     """
-    statement = <print> expression | statement_block | expression { "=" expression }
+    statement = <print> expression | statement_block | expression { "=" expression } | if_statement
     """
     if tokens[0]["tag"] == "print":
         value_ast, tokens = parse_expression(tokens[1:])
@@ -297,6 +324,9 @@ def parse_statement(tokens):
             'tag':'print',
             'value': value_ast
         }
+        return ast, tokens
+    if tokens[0]["tag"] == "if":
+        ast, tokens = parse_if_statement(tokens)
         return ast, tokens
     if tokens[0]["tag"] == "{":
         ast, tokens = parse_statement_block(tokens)
