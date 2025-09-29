@@ -12,12 +12,16 @@ ebnf = """
     term = factor { "*"|"/" factor }
     arithmetic_expression = term { "+"|"-" term }
     relational_expression = arithmetic_expression { ("<" | ">" | "<=" | ">=" | "==" | "!=") arithmetic_expression } ;
+
     logical_factor = relational_expression
     logical_term = logical_factor { "&&" logical_factor }
     logical_expression = logical_term { "||" logical_term }
+
     expression = logical_expression
 
     statement = <print> expression | expression { "=" expression }
+    statement_block = "{" statement { ";" statement } "}"
+
     program = expression { ";" expression }
 """
 
@@ -272,9 +276,20 @@ def test_parse_expression():
     ast2, _ = parse_logical_expression(tokenize("1+1"))
     assert ast1 == ast2
 
+def parse_statement_block(tokens):
+    ast = {"tag": "block", "statements": []}
+    assert tokens[0]["tag"] == "{"
+    tokens = tokens[1:]
+    if tokens[0]["tag"] != "}":
+
+    while tokens[0]["tag"] == ";":
+        ast parse_statement(tokens)
+
+
+
 def parse_statement(tokens):
     """
-    statement = <print> expression | expression { "=" expression }
+    statement = <print> expression | statement_block | expression { "=" expression }
     """
     if tokens[0]["tag"] == "print":
         value_ast, tokens = parse_expression(tokens[1:])
@@ -282,6 +297,9 @@ def parse_statement(tokens):
             'tag':'print',
             'value': value_ast
         }
+        return ast, tokens
+    if tokens[0]["tag"] == "{":
+        ast, tokens = parse_statement_block(tokens)
         return ast, tokens
     else:
         ast, tokens = parse_expression(tokens)

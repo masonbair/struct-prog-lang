@@ -18,6 +18,9 @@ def evaluate(ast, environment):
         printed_string = s
         print(s)
         return None
+    if ast["tag"] == "block":
+        for statement in ast["statements"]:
+            value = evaluate(statement, environment)
     if ast["tag"] == "assign":
         target = ast["target"]
         assert target["tag"] == "identifier"
