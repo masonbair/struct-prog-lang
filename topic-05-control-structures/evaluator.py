@@ -18,23 +18,6 @@ def evaluate(ast, environment):
         printed_string = s
         print(s)
         return None
-    if ast["tag"] == "if":
-        condition = evaluate(ast["condition"], environment)
-        if condition:
-            evaluate(ast["then"], environment)
-            return None
-        if ast["else"]:
-            evaluate(ast["else"], environment)
-        return None
-    if ast["tag"] == "while":
-        condition = evaluate(ast["condition"], environment)
-        while condition:
-            evaluate(ast["do"], environment)
-            condition = evaluate(ast["condition"], environment)
-        return None
-    if ast["tag"] == "block":
-        for statement in ast["statements"]:
-            value = evaluate(statement, environment)
     if ast["tag"] == "assign":
         target = ast["target"]
         assert target["tag"] == "identifier"
