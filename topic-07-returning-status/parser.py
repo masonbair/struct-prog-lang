@@ -10,7 +10,7 @@ Parser for simple expressions and statements.
 # Grammar 
 
 grammar = """
-    factor = <number> | <string> | <identifier> | "(" expression ")" | "!" expression | "-" expression
+    factor = <number> | <boolean> | <string> | <identifier> | "(" expression ")" | "!" expression | "-" expression
     term = factor { "*"|"/" factor }
     arithmetic_expression = term { "+"|"-" term }
     relational_expression = arithmetic_expression { ("<" | ">" | "<=" | ">=" | "==" | "!=") arithmetic_expression }
@@ -42,6 +42,8 @@ def parse_factor(tokens):
         return {"tag": "string", "value": token["value"]}, tokens[1:]
     if token["tag"] == "identifier":
         return {"tag": "identifier", "value": token["value"]}, tokens[1:]
+    if token["tag"] == "boolean":
+        return {"tag": "boolean", "value": token["value"]}, tokens[1:]
     if token["tag"] == "(":
         ast, tokens = parse_expression(tokens[1:])
         assert tokens[0]["tag"] == ")", f"Expected ')' but got {tokens[0]}"
@@ -56,7 +58,7 @@ def parse_factor(tokens):
 
 def test_parse_factor():
     """
-    factor = <number> | <string> | <identifier> | "(" expression ")" | "!" expression | "-" expression
+    factor = <number> | <boolean> | <string> | <identifier> | "(" expression ")" | "!" expression | "-" expression
     """
     print("testing parse_factor()")
     for s in ["1", "22", "333"]:
@@ -82,6 +84,12 @@ def test_parse_factor():
         "left": {"tag": "number", "value": 2},
         "right": {"tag": "number", "value": 3},
     }
+    for s in ["true", "false"]:
+        tokens = tokenize(s)
+        ast, tokens = parse_factor(tokens)
+        assert ast == {"tag": "boolean", "value": s == "true"}
+        assert tokens[0]["tag"] is None
+
     tokens = tokenize("x")
     ast, tokens = parse_factor(tokens)
     assert ast == {"tag": "identifier", "value": "x"}
