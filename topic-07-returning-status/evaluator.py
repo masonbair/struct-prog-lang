@@ -6,106 +6,183 @@ printed_string = None
 def evaluate(ast, environment={}):
     global printed_string
     if ast["tag"] == "program":
+        # TODO: Should this return a value? Probably not? 
+        status = None
         last_value = None
         for statement in ast["statements"]:
-            value = evaluate(statement, environment)
+            value, status = evaluate(statement, environment)
             last_value = value
-        return last_value
+            if status:
+                return value, status
+        return last_value, status
     if ast["tag"] == "block":
         for statement in ast["statements"]:
-            _ = evaluate(statement, environment)
+            value, status = evaluate(statement, environment)
+            if status:
+                return value, status
+        return None, None
     if ast["tag"] == "print":
-        value = evaluate(ast["value"], environment)
+        value, status = evaluate(ast["value"], environment)
+        if status:
+            return value, status
         s = str(value)
         print(s)
         printed_string = s
-        return None
+        return None, None
     if ast["tag"] == "if":
-        condition_value = evaluate(ast["condition"], environment)
+        condition_value, status = evaluate(ast["condition"], environment)
         if condition_value:
-            evaluate(ast["then"], environment)
+            value, status = evaluate(ast["then"], environment)
+            if status:
+                return value, status
         else:
             if ast["else"]:
-                evaluate(ast["else"], environment)
-        return None
+                value, status = evaluate(ast["else"], environment)
+            if status:
+                return value, status
+        return None, None
     if ast["tag"] == "while":
-        while evaluate(ast["condition"], environment):
-            evaluate(ast["do"], environment)
-        return None
+        print(environment)
+        value, status = evaluate(ast["condition"], environment)
+        if status:
+            return value, status
+        while value:
+            print(environment)
+            value, status = evaluate(ast["do"], environment)
+            if status:
+                if status == "break":
+                    break
+                if status == "continue":
+                    continue
+                return value, status
+            value, status = evaluate(ast["condition"], environment)
+            if status: 
+                return value, status
+        return None, None
+    if ast["tag"] == "break":
+        return None, "break"
+    if ast["tag"] == "continue":
+        return None, "continue"
     if ast["tag"] == "assign":
         target = ast["target"]
         assert target["tag"] == "identifier"
         identifier = target["value"]
         assert type(identifier) is str
-        value = evaluate(ast["value"],environment)
+        value, status = evaluate(ast["value"],environment)
+        if status:
+            return value, status
         environment[identifier] = value
+        return None, None
     if ast["tag"] == "number":
-        return ast["value"]
+        return ast["value"], None
     if ast["tag"] == "string":
-        return ast["value"]
+        return ast["value"], None
     if ast["tag"] == "identifier":
         if ast["value"] in environment:
-            return environment[ast["value"]]
+            return environment[ast["value"]], None
         parent_environment = environment
         while "$parent" in parent_environment:
             parent_environment = environment["$parent"]
             if ast["value"] in parent_environment:
-                return parent_environment[ast["value"]]
+                return parent_environment[ast["value"]], None
         raise Exception(f"Value [{ast["value"]}] not found in environment {environment}.")
     if ast["tag"] in ["+", "-", "*", "/"]:
-        left_value = evaluate(ast["left"], environment)
-        right_value = evaluate(ast["right"], environment)
+        left_value, status = evaluate(ast["left"], environment)
+        if status:
+            return left_value, status
+        right_value, status = evaluate(ast["right"], environment)
+        if status:
+            return right_value, status
         if ast["tag"] == "+":
-            return left_value + right_value
+            return left_value + right_value, None
         if ast["tag"] == "-":
-            return left_value - right_value
+            return left_value - right_value, None
         if ast["tag"] == "*":
-            return left_value * right_value
+            return left_value * right_value, None
         if ast["tag"] == "/":
-            return left_value / right_value
+            return left_value / right_value, None
     if ast["tag"] == "negate":
-        value = evaluate(ast["value"], environment)
-        return -value
+        value, status= evaluate(ast["value"], environment)
+        if status:
+            return left_value, status
+        return -value, None
     if ast["tag"] == "&&":
-        left_value = evaluate(ast["left"], environment)
-        right_value = evaluate(ast["right"], environment)
-        return left_value and right_value
+        # TODO: Implement short circuit code
+        left_value, status = evaluate(ast["left"], environment)
+        if status:
+            return left_value, status
+        right_value, status = evaluate(ast["right"], environment)
+        if status:
+            return right_value, status
+        return left_value and right_value, None
     if ast["tag"] == "||":
-        left_value = evaluate(ast["left"], environment)
-        right_value = evaluate(ast["right"], environment)
-        return left_value or right_value
+        # TODO: Implement short circuit code
+        left_value, status = evaluate(ast["left"], environment)
+        if status:
+            return left_value, status
+        right_value, status = evaluate(ast["right"], environment)
+        if status:
+            return right_value, status
+        return left_value or right_value, None
     if ast["tag"] == "!":
-        value = evaluate(ast["value"], environment)
-        return not value
+        value, status = evaluate(ast["value"], environment)
+        if status:
+            return value, status
+        return not value, None
     if ast["tag"] == "<":
-        left_value = evaluate(ast["left"], environment)
-        right_value = evaluate(ast["right"], environment)
-        return left_value < right_value
+        left_value, status = evaluate(ast["left"], environment)
+        if status:
+            return left_value, status
+        right_value, status = evaluate(ast["right"], environment)
+        if status:
+            return right_value, status
+        return left_value < right_value, None
     if ast["tag"] == ">":
-        left_value = evaluate(ast["left"], environment)
-        right_value = evaluate(ast["right"], environment)
-        return left_value > right_value
+        left_value, status = evaluate(ast["left"], environment)
+        if status:
+            return left_value, status
+        right_value, status = evaluate(ast["right"], environment)
+        if status:
+            return right_value, status
+        return left_value > right_value, None
     if ast["tag"] == "<=":
-        left_value = evaluate(ast["left"], environment)
-        right_value = evaluate(ast["right"], environment)
-        return left_value <= right_value
+        left_value, status = evaluate(ast["left"], environment)
+        if status:
+            return left_value, status
+        right_value, status = evaluate(ast["right"], environment)
+        if status:
+            return right_value, status
+        return left_value <= right_value, None
     if ast["tag"] == ">=":
-        left_value = evaluate(ast["left"], environment)
-        right_value = evaluate(ast["right"], environment)
-        return left_value >= right_value
+        left_value, status = evaluate(ast["left"], environment)
+        if status:
+            return left_value, status
+        right_value, status = evaluate(ast["right"], environment)
+        if status:
+            return right_value, status
+        return left_value >= right_value, None
     if ast["tag"] == "==":
-        left_value = evaluate(ast["left"], environment)
-        right_value = evaluate(ast["right"], environment)
-        return left_value == right_value
+        left_value, status = evaluate(ast["left"], environment)
+        if status:
+            return left_value, status
+        right_value, status = evaluate(ast["right"], environment)
+        if status:
+            return right_value, status
+        return left_value == right_value, None
     if ast["tag"] == "!=":
-        left_value = evaluate(ast["left"], environment)
-        right_value = evaluate(ast["right"], environment)
-        return left_value != right_value
+        left_value, status = evaluate(ast["left"], environment)
+        if status:
+            return left_value, status
+        right_value, status = evaluate(ast["right"], environment)
+        if status:
+            return right_value, status
+        return left_value != right_value, None
+    assert False, f"Unexpected ast tag, [{ast["tag"]}]"
 
 
 def test_evaluate_number():
     print("testing evaluate number")
-    assert evaluate({"tag":"number","value":4}) == 4
+    assert evaluate({"tag":"number","value":4}) == (4, None)
 
 def test_evaluate_addition():
     print("testing evaluate addition")
@@ -114,7 +191,7 @@ def test_evaluate_addition():
         "left":{"tag":"number","value":1},
         "right":{"tag":"number","value":3}
         }
-    assert evaluate(ast) == 4
+    assert evaluate(ast) == (4, None)
 
 def test_evaluate_subtraction():
     print("testing evaluate subtraction")
@@ -123,7 +200,7 @@ def test_evaluate_subtraction():
         "left":{"tag":"number","value":3},
         "right":{"tag":"number","value":2}
         }
-    assert evaluate(ast) == 1
+    assert evaluate(ast) == (1, None)
 
 def test_evaluate_multiplication():
     print("testing evaluate multiplication")
@@ -132,7 +209,7 @@ def test_evaluate_multiplication():
         "left":{"tag":"number","value":3},
         "right":{"tag":"number","value":2}
         }
-    assert evaluate(ast) == 6
+    assert evaluate(ast) == (6, None)
 
 def test_evaluate_division():
     print("testing evaluate division")
@@ -141,12 +218,13 @@ def test_evaluate_division():
         "left":{"tag":"number","value":4},
         "right":{"tag":"number","value":2}
         }
-    assert evaluate(ast) == 2
+    assert evaluate(ast) == (2, None)
 
 def eval(s, environment={}):
     tokens = tokenize(s)
     ast = parse(tokens)
-    result = evaluate(ast, environment)
+    result, status = evaluate(ast, environment)
+    assert status == None
     return result
 
 def test_evaluate_expression():

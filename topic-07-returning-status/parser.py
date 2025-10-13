@@ -33,17 +33,17 @@ grammar = """
 
 def parse_factor(tokens):
     """
-    factor = <number> | <string> | <identifier> | "(" expression ")" | "!" expression | "-" expression
+    factor = <number> | <boolean> | <string> | <identifier> | "(" expression ")" | "!" expression | "-" expression
     """
     token = tokens[0]
     if token["tag"] == "number":
         return {"tag": "number", "value": token["value"]}, tokens[1:]
     if token["tag"] == "string":
         return {"tag": "string", "value": token["value"]}, tokens[1:]
-    if token["tag"] == "identifier":
-        return {"tag": "identifier", "value": token["value"]}, tokens[1:]
     if token["tag"] == "boolean":
         return {"tag": "boolean", "value": token["value"]}, tokens[1:]
+    if token["tag"] == "identifier":
+        return {"tag": "identifier", "value": token["value"]}, tokens[1:]
     if token["tag"] == "(":
         ast, tokens = parse_expression(tokens[1:])
         assert tokens[0]["tag"] == ")", f"Expected ')' but got {tokens[0]}"
@@ -54,17 +54,21 @@ def parse_factor(tokens):
     if token["tag"] == "-":
         ast, tokens = parse_expression(tokens[1:])
         return {"tag": "negate", "value": ast}, tokens
-    raise Exception(f"Unexpected token '{token['tag']}' at position {token['position']}.")
+    raise Exception(f"Unexpected token '{token['tag']}' at position {token['position']}, {[[tokens]]}.")
 
 def test_parse_factor():
     """
     factor = <number> | <boolean> | <string> | <identifier> | "(" expression ")" | "!" expression | "-" expression
     """
-    print("testing parse_factor()")
     for s in ["1", "22", "333"]:
         tokens = tokenize(s)
         ast, tokens = parse_factor(tokens)
         assert ast == {"tag": "number", "value": int(s)}
+        assert tokens[0]["tag"] is None
+    for s in ['true', 'false']:
+        tokens = tokenize(s)
+        ast, tokens = parse_factor(tokens)
+        assert ast == {"tag": "boolean", "value": (s == "true")}
         assert tokens[0]["tag"] is None
     for s in ['"1"', '"abc"', '""','"hi""hello"']:
         tokens = tokenize(s)
@@ -84,12 +88,6 @@ def test_parse_factor():
         "left": {"tag": "number", "value": 2},
         "right": {"tag": "number", "value": 3},
     }
-    for s in ["true", "false"]:
-        tokens = tokenize(s)
-        ast, tokens = parse_factor(tokens)
-        assert ast == {"tag": "boolean", "value": s == "true"}
-        assert tokens[0]["tag"] is None
-
     tokens = tokenize("x")
     ast, tokens = parse_factor(tokens)
     assert ast == {"tag": "identifier", "value": "x"}
@@ -129,7 +127,6 @@ def test_parse_term():
     """
     term = factor { "*"|"/" factor }
     """
-    print("testing parse_term()")
     for s in ["1", "22", "333"]:
         tokens = tokenize(s)
         ast, tokens = parse_term(tokens)
@@ -169,7 +166,6 @@ def test_parse_arithmetic_expression():
     """
     arithmetic_expression = term { "+"|"-" term }
     """
-    print("testing parse_arithmetic_expression()")
     for s in ["1", "22", "333"]:
         tokens = tokenize(s)
         ast, tokens = parse_arithmetic_expression(tokens)
@@ -224,7 +220,6 @@ def test_parse_relational_expression():
     """
     relational_expression = arithmetic_expression { ("<" | ">" | "<=" | ">=" | "==" | "!=") arithmetic_expression }
     """
-    print("testing parse_relational_expression()")
     for operator in ["<", ">", "<=", ">=", "==", "!="]:
         tokens = tokenize(f"2{operator}4")
         ast, tokens = parse_relational_expression(tokens)
@@ -262,7 +257,6 @@ def test_parse_logical_factor():
     """
     logical_factor = relational_expression
     """
-    print("testing parse_logical_factor...")
     tokens = tokenize("x")
     ast, tokens = parse_logical_factor(tokens)
     assert ast == {"tag": "identifier", "value": "x"}
@@ -288,7 +282,6 @@ def test_parse_logical_term():
     """
     logical_term = logical_factor { "&&" logical_factor }
     """
-    print("testing parse_logical_term...")
     tokens = tokenize("x")
     ast, tokens = parse_logical_term(tokens)
     assert ast == {"tag": "identifier", "value": "x"}
@@ -326,7 +319,6 @@ def test_parse_logical_expression():
     """
     logical_expression = logical_term { "||" logical_term }
     """
-    print("testing parse_logical_expression...")
     tokens = tokenize("x")
     ast, tokens = parse_logical_expression(tokens)
     assert ast == {"tag": "identifier", "value": "x"}
@@ -359,7 +351,6 @@ def test_parse_expression():
     """
     expression = logical_expression
     """
-    print("testing parse_expression...")
     for s in ["1", "1+1", "1 && 1", "1 < 2"]:
         t = tokenize(s)
         ast, tokens = parse_expression(t)
@@ -420,7 +411,6 @@ def test_parse_print_statement():
     """
     print_statement = "print" [ expression ]
     """
-    print("testing parse_print_statement...")
     ast, tokens = parse_print_statement(tokenize("print 1"))
     assert ast == {"tag": "print", "value": {"tag": "number", "value": 1}}
 
@@ -452,7 +442,6 @@ def test_parse_if_statement():
     """
     if_statement = "if" "(" expression ")" statement_block [ "else" statement_block ]
     """
-    print("Testing parse if statement...")
     ast, _ = parse_if_statement(tokenize("if(1){print 1}"))
     assert ast == {
         'tag': 'if', 
@@ -491,13 +480,36 @@ def test_parse_while_statement():
     """
     while_statement = "while" "(" expression ")" statement_block
     """
-    print("Testing parse while statement...")
     ast, _ = parse_while_statement(tokenize("while(1){print 1}"))
     assert ast == {
         'tag': 'while', 
         'condition': {'tag': 'number', 'value': 1}, 
         'do': {'tag': 'block', 'statements': [{'tag': 'print', 'value': {'tag': 'number', 'value': 1}}]}
     }
+
+def parse_assignment_statement(tokens):
+    """
+    assignment_statement = expression [ "=" expression ]
+    """
+    target, tokens = parse_expression(tokens)
+    if tokens[0]["tag"] == "=":
+        tokens = tokens[1:]
+        value, tokens = parse_expression(tokens)
+        return {"tag": "assign", "target": target, "value": value}, tokens
+    return target, tokens
+
+def test_parse_assignment_statement():
+    """
+    assignment_statement = expression [ "=" expression ]
+    """
+    ast, tokens = parse_assignment_statement(tokenize("i=2"))
+    assert ast == {
+        "tag": "assign",
+        "target": {"tag": "identifier", "value": "i"},
+        "value": {"tag": "number", "value": 2},
+    }
+    ast, tokens = parse_assignment_statement(tokenize("2"))
+    assert ast == {"tag": "number", "value": 2}
 
 def parse_break_statement(tokens):
     """
@@ -514,10 +526,9 @@ def test_parse_break_statement():
     """
     break_statement = "break"
     """
-    print("Testing parse break statement...")
     ast, _ = parse_break_statement(tokenize("break"))
     assert ast == {
-        'tag': 'break', 
+        'tag': 'break'
     }
 
 def parse_continue_statement(tokens):
@@ -535,38 +546,11 @@ def test_parse_continue_statement():
     """
     continue_statement = "continue"
     """
-    print("Testing parse continue statement...")
     ast, _ = parse_continue_statement(tokenize("continue"))
     assert ast == {
-        'tag': 'continue', 
+        'tag': 'continue'
     }
 
-
-
-def parse_assignment_statement(tokens):
-    """
-    assignment_statement = expression [ "=" expression ]
-    """
-    target, tokens = parse_expression(tokens)
-    if tokens[0]["tag"] == "=":
-        tokens = tokens[1:]
-        value, tokens = parse_expression(tokens)
-        return {"tag": "assign", "target": target, "value": value}, tokens
-    return target, tokens
-
-def test_parse_assignment_statement():
-    """
-    assignment_statement = expression [ "=" expression ]
-    """
-    print("testing parse_assignment_statement()")
-    ast, tokens = parse_assignment_statement(tokenize("i=2"))
-    assert ast == {
-        "tag": "assign",
-        "target": {"tag": "identifier", "value": "i"},
-        "value": {"tag": "number", "value": 2},
-    }
-    ast, tokens = parse_assignment_statement(tokenize("2"))
-    assert ast == {"tag": "number", "value": 2}
 
 def parse_statement(tokens):
     """
@@ -591,7 +575,6 @@ def test_parse_statement():
     """
     statement = statement_block | if_statement | while_statement | print_statement | assignment_statement | break_statement | continue_statement
     """
-    print("testing parse_statement...")
     ast, _ = parse_statement(tokenize("{print 1}"))
     assert ast == {'tag': 'block', 'statements': [{'tag': 'print', 'value': {'tag': 'number', 'value': 1}}]}
     ast, _ = parse_statement(tokenize("print 1"))
@@ -599,9 +582,13 @@ def test_parse_statement():
     ast, _ = parse_statement(tokenize("x=3"))
     assert ast == {"tag": "assign", "target": {"tag": "identifier", "value": "x"}, "value": {"tag": "number", "value": 3}}
     ast, _ = parse_statement(tokenize("break"))
-    assert ast == {'tag': 'break'}
+    assert ast == {
+        'tag': 'break'
+    }
     ast, _ = parse_statement(tokenize("continue"))
-    assert ast == {'tag': 'continue'}
+    assert ast == {
+        'tag': 'continue'
+    }
 
 def parse_program(tokens):
     """
@@ -622,7 +609,6 @@ def test_parse_program():
     """
     program = [ statement { ";" statement } ]
     """
-    print("testing parse_program...")
     ast, tokens = parse_program(tokenize("print 1; print 2"))
     assert ast == {
         "tag": "program",
@@ -656,9 +642,9 @@ if __name__ == "__main__":
         test_parse_print_statement,
         test_parse_if_statement,
         test_parse_while_statement,
+        test_parse_assignment_statement,
         test_parse_break_statement,
         test_parse_continue_statement,
-        test_parse_assignment_statement,
         test_parse_statement,
         test_parse_program,
     ]
@@ -677,6 +663,7 @@ if __name__ == "__main__":
 
         # Determine the corresponding parsing function name (drop the "test_" prefix).
         parsing_function_name = test_function.__name__[5:]
+        print(f"testing {parsing_function_name}...")
         if parsing_function_name not in globals():
             raise Exception(f"Parsing function {parsing_function_name} not found for test {test_function.__name__}")
         parsing_function = globals()[parsing_function_name]

@@ -13,7 +13,7 @@ patterns = [
     [r"and","&&"],
     [r"or","||"],
     [r"not","!"],
-    [r"true|false", "boolean"],
+    [r"true|false","boolean"],
     [r"\d*\.\d+|\d+\.\d*|\d+", "number"],
     [r'"([^"]|"")*"', "string"],  # string literals
     [r"[a-zA-Z_][a-zA-Z0-9_]*", "identifier"],  # identifiers
@@ -64,6 +64,8 @@ def tokenize(characters):
             "position":position,
             "value":match.group(0)
         }
+        if token["tag"] == "boolean":
+            token["value"] = token["value"] == "true"
         if token["tag"] == "number":
             if "." in token["value"]:
                 token["value"] = float(token["value"])
@@ -71,8 +73,6 @@ def tokenize(characters):
                 token["value"] = int(token["value"])
         if token["tag"] == "string":
             token["value"] = token["value"][1:-1].replace('""', '"')
-        if token["tag"] == "boolean":
-            token["value"] = token["value"] == "true"
         if token["tag"] != "whitespace":
             tokens.append(token)
         position = match.end()
@@ -112,6 +112,14 @@ def test_number_tokens():
         assert t[0]["tag"] == "number"
         assert t[0]["value"] == float(s)
 
+def test_boolean_tokens():
+    print("test boolean tokens")
+    for s in ["true","false"]:
+        t = tokenize(s)
+        assert len(t) == 2
+        assert t[0]["tag"] == "boolean"
+        assert t[0]["value"] == (s == "true")
+
 def test_string_tokens():
     print("test string tokens")
     for s in ['"1"','"abc"','""']:
@@ -119,14 +127,6 @@ def test_string_tokens():
         assert len(t) == 2
         assert t[0]["tag"] == "string"
         assert t[0]["value"] == s[1:-1]
-
-def test_boolean_tokens():
-    print("test boolean tokens")
-    for s in ['true','false']:
-        t = tokenize(s)
-        assert len(t) == 2
-        assert t[0]["tag"] == "boolean"
-        assert t[0]["value"] == (s == "true")
 
 def test_multiple_tokens():
     print("test multiple tokens")
@@ -169,8 +169,8 @@ def test_error():
 if __name__ == "__main__":
     test_simple_token()
     test_number_tokens()
-    test_string_tokens()
     test_boolean_tokens()
+    test_string_tokens()
     test_multiple_tokens()
     test_whitespace()
     test_keywords()

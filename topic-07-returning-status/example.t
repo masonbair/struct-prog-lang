@@ -21,5 +21,30 @@ while (x < 14) {
 };
 print x;
 print "Hello!";
-print "My dog is " + "Dorothy"
+print "My dog is " + "Dorothy";
 
+x = 1;
+while (x < 10) {
+    x = x + 1;
+    print(x);
+    if (x == 5) {
+        break
+    }
+};
+print("should see 5");
+print x;
+
+y = 0;
+x = 0;
+while (x < 10) {
+    x = x + 1;
+    if (x > 8) {
+        continue
+    };
+    y = y + 1
+};
+print("Should see 8");
+print y;
+
+assert true, "this should not appear"
+assert false, "this should appear"
