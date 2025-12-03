@@ -8,6 +8,7 @@ Parser for simple expressions and statements.
 """
 
 # Grammar 
+<<<<<<< HEAD
 #     simple_expression = <number> | <boolean> | <string> | <identifier> | list | object | "-" expression | "!" expression | "-" expression | function | ( "(" expression ")" )
 
 
@@ -16,6 +17,14 @@ grammar = """
     list = "[" expression {"," exression } "]"
     object = "{" [ expression ":" expression { "," expression ":" expression } ] }
 
+=======
+#    simple_expression = <identifier> | <boolean> | <number> | <string> | <null> | list | #   object | "-" simple_expression | "!" simple_expression | function | ( "(" expression ")" )
+
+grammar = """
+    simple_expression = <identifier> | <boolean> | <number> | <string> | list | "-" simple_expression | "!" simple_expression | ( "(" expression ")" )
+    list = "[" expression { "," expression } "]"
+    object = "{" [ expression ":" expression { "," expression ":" expression } ] "}"
+>>>>>>> af48aea65e4e9180da26d0d533edb588b8f6e558
     complex_expression = simple_expression
     arithmetic_factor = complex_expression
     arithmetic_term = arithmetic_factor { "*"|"/" arithmetic_factor }
@@ -40,26 +49,40 @@ grammar = """
 
 def parse_list(tokens):
     """
+<<<<<<< HEAD
     list = "[" expression {"," exression } "]"
     """
     assert tokens[0]["tag"] == "[", f"Expected ']' at positon {tokens[0]['position']}"
+=======
+    list = "[" expression { "," expression } "]"
+    """
+    assert tokens[0]["tag"] == "[", f"Expected '[' at position {tokens[0]['position']}"
+>>>>>>> af48aea65e4e9180da26d0d533edb588b8f6e558
     tokens = tokens[1:]
     items = []
     if tokens[0]["tag"] != "]":
         value, tokens = parse_expression(tokens)
         items.append(value)
+<<<<<<< HEAD
         while tokens[0]["tag"] == ',':
+=======
+        while tokens[0]["tag"] == ",":
+>>>>>>> af48aea65e4e9180da26d0d533edb588b8f6e558
             tokens = tokens[1:]
             if tokens[0]["tag"] == "]":
                 break
             value, tokens = parse_expression(tokens)
             items.append(value)
+<<<<<<< HEAD
     assert tokens[0]["tag"] == "]", f"Expected ']' at positon {tokens[0]['position']}"
+=======
+    assert tokens[0]["tag"] == "]", f"Expected ']' at position {tokens[0]['position']}, got {tokens[0:]}."
+>>>>>>> af48aea65e4e9180da26d0d533edb588b8f6e558
     return {"tag":"list", "items":items}, tokens
 
 def test_parse_list():
     """
-    list = "[" expression {"," exression } "]"
+    list = "[" expression { "," expression } "]"
     """
     tokens = tokenize("[1,2,3,4]")
     ast, tokens = parse_list(tokens)
@@ -72,40 +95,49 @@ def test_parse_list():
     assert ast == {'tag': 'list', 'items': [{'tag': 'number', 'value': 1}, {'tag': 'number', 'value': 2}, {'tag': 'number', 'value': 3}, {'tag': 'number', 'value': 4}]}
     tokens = tokenize("[1,2,[3,4]]")
     ast, tokens = parse_list(tokens)
-    assert ast == {'tag': 'list', 'items': [{'tag': 'number', 'value': 1}, {'tag': 'number', 'value': 2}, {'tag': 'list', 'value': {'tag': 'list', 'items': [{'tag': 'number', 'value': 3}, {'tag': 'number', 'value': 4}]}}]}
+    assert ast== {'tag': 'list', 'items': [{'tag': 'number', 'value': 1}, {'tag': 'number', 'value': 2}, {'tag': 'list', 'items': [{'tag': 'number', 'value': 3}, {'tag': 'number', 'value': 4}]}]}    
 
 def parse_object(tokens):
     """
-    object = "{" [ expression ":" expression { "," expression ":" expression } ] }
+    object = "{" [ expression ":" expression { "," expression ":" expression } ] "}"
     """
-    assert tokens[0]["tag"] == "{", f"Expected at positon {tokens[0]['position']}"
+    assert tokens[0]["tag"] == "{", f"Expected '{{' at position {tokens[0]['position']}"
     tokens = tokens[1:]
     items = []
     if tokens[0]["tag"] != "}":
         key, tokens = parse_expression(tokens)
-        assert tokens[0]["tag"] == ":",  f"Expected ':' at positon {tokens[0]['position']}"
+        assert tokens[0]["tag"] == ":", "Expecting ':'"
         tokens = tokens[1:]
         value, tokens = parse_expression(tokens)
         items.append({"key":key, "value":value})
-        while tokens[0]["tag"] == ',':
+        while tokens[0]["tag"] == ",":
             tokens = tokens[1:]
             if tokens[0]["tag"] == "}":
                 break
             key, tokens = parse_expression(tokens)
-            assert tokens[0]["tag"] == ":",  f"Expected ':' at positon {tokens[0]['position']}"
+            assert tokens[0]["tag"] == ":", "Expecting ':'"
             tokens = tokens[1:]
             value, tokens = parse_expression(tokens)
             items.append({"key":key, "value":value})
-    assert tokens[0]["tag"] == "}", f"Expected ']' at positon {tokens[0]['position']}"
+    assert tokens[0]["tag"] == "}", f"Expected '}}' at position {tokens[0]['position']}, got {tokens[0:]}."
     return {"tag":"object", "items":items}, tokens
 
 def test_parse_object():
     """
-    object = "{" [ expression ":" expression { "," expression ":" expression } ] }
+    object = "{" [ expression ":" expression { "," expression ":" expression } ] "}"
     """
     tokens = tokenize("{}")
     ast, tokens = parse_object(tokens)
-    assert ast == {'tag': 'object', 'items': []}
+    assert ast=={'tag': 'object', 'items': []}
+    print(ast)
+    tokens = tokenize('{"a":1}')
+    ast, tokens = parse_object(tokens)
+    assert ast == {'tag': 'object', 'items': [{'key': {'tag': 'string', 'value': 'a'}, 'value': {'tag': 'number', 'value': 1}}]}
+    tokens = tokenize('{a:1}')
+    ast, tokens = parse_object(tokens)
+    assert ast == {'tag': 'object', 'items': [{'key': {'tag': 'identifier', 'value': 'a'}, 'value': {'tag': 'number', 'value': 1}}]}
+    tokens = tokenize('{a:1,b:{c:2},}')
+    ast, tokens = parse_object(tokens)
 
 
 def parse_factor(tokens):
@@ -133,10 +165,10 @@ def parse_factor(tokens):
         return {"tag": "negate", "value": ast}, tokens
     if token["tag"] == "[":
         ast, tokens = parse_list(tokens)
-        return {"tag": "list", "value": ast}, tokens
+        return ast, tokens
     if token["tag"] == "{":
         ast, tokens = parse_object(tokens)
-        return {"tag": "object", "value": ast}, tokens
+        return ast, tokens
     raise Exception(f"Unexpected token '{token['tag']}' at position {token['position']}, {[[tokens]]}.")
 
 def test_parse_factor():
@@ -711,30 +743,32 @@ def parse(tokens):
 normalized_grammar = "\n".join([line.strip() for line in grammar.splitlines() if line.strip()])
 
 if __name__ == "__main__":
+    test_parse_list()
+    test_parse_object()
+    exit(0)
     # List of all test functions.
-    # test_functions = [
-    #     test_parse_factor,
-    #     test_parse_term,
-    #     test_parse_arithmetic_expression,
-    #     test_parse_relational_expression,
-    #     test_parse_logical_factor,
-    #     test_parse_logical_term,
-    #     test_parse_logical_expression,
-    #     test_parse_expression,
-    #     test_parse_statement_block,
-    #     test_parse_print_statement,
-    #     test_parse_if_statement,
-    #     test_parse_while_statement,
-    #     test_parse_assignment_statement,
-    #     test_parse_break_statement,
-    #     test_parse_continue_statement,
-    #     test_parse_statement,
-    #     test_parse_program,
-    # ]
+    test_functions = [
+        test_parse_factor,
+        test_parse_term,
+        test_parse_arithmetic_expression,
+        test_parse_relational_expression,
+        test_parse_logical_factor,
+        test_parse_logical_term,
+        test_parse_logical_expression,
+        test_parse_expression,
+        test_parse_statement_block,
+        test_parse_print_statement,
+        test_parse_if_statement,
+        test_parse_while_statement,
+        test_parse_assignment_statement,
+        test_parse_break_statement,
+        test_parse_continue_statement,
+        test_parse_statement,
+        test_parse_program,
+    ]
 
     test_functions = [
         test_parse_list,
-        test_parse_object,
     ]
 
     untested_grammar = normalized_grammar
