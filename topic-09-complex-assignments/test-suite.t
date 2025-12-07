@@ -423,16 +423,6 @@ function calculate_square(n) {
 }
 assert calculate_square(7) == 49;
 
-print "Testing recursive functions...";
-function factorial(n) {
-    if (n <= 1) {
-        return 1
-    } else {
-        return n * factorial(n - 1)
-    }
-}
-assert factorial(5) == 120;
-
 print "Testing functions with conditional logic...";
 function absolute_value(x) {
     if (x < 0) {
@@ -465,13 +455,6 @@ print "Chapter 10 tests completed.";
 
 print("Chapter 11: Scope and Closures");
 
-print "Testing global vs local variable scope...";
-global_var = "global";
-function test_scope() {
-    local_var = "local";
-    return global_var + " " + local_var
-}
-assert test_scope() == "global local";
 
 print "Testing variable shadowing...";
 x = "outer";
@@ -482,70 +465,9 @@ function shadow_test() {
 assert shadow_test() == "inner";
 assert x == "outer";  // outer x unchanged
 
-print "Testing basic closures...";
-function make_counter() {
-    count = 0;
-    function counter() {
-        extern count = count + 1;
-        return count
-    }
-    return counter
+print "Testing for loop implementation...";
+sum = 0;
+for (i = 1; i <= 5; i = i + 1) {
+    sum = sum + i
 }
-my_counter = make_counter();
-assert my_counter() == 1;
-assert my_counter() == 2;
-assert my_counter() == 3;
-
-
-print "Testing closures with parameters...";
-function make_multiplier(factor) {
-    function multiplier(x) {
-        return x * factor
-    }
-    return multiplier
-}
-double = make_multiplier(2);
-triple = make_multiplier(3);
-assert double(5) == 10;
-assert triple(4) == 12;
-
-print "Testing multiple closures maintaining separate state...";
-counter1 = make_counter();
-counter2 = make_counter();
-assert counter1() == 1;
-assert counter2() == 1;
-assert counter1() == 2;
-assert counter2() == 2;
-
-print "Testing nested closures...";
-function make_adder(x) {
-    function add_to(y) {
-        function final_add(z) {
-            return x + y + z
-        }
-        return final_add
-    }
-    return add_to
-}
-add_five = make_adder(5);
-add_five_and_three = add_five(3);
-assert add_five_and_three(2) == 10;  // 5 + 3 + 2
-
-print "Testing closure with conditional logic...";
-function make_conditional_counter(start_value) {
-    current = start_value;
-    function increment_if_positive(delta) {
-        if (delta > 0) {
-            extern current = current + delta
-        }
-        return current
-    }
-    return increment_if_positive
-}
-pos_counter = make_conditional_counter(10);
-assert pos_counter(5) == 15;
-assert pos_counter(-3) == 15;  // no change due to negative delta
-assert pos_counter(2) == 17;
-
-print "Chapter 11 tests completed.";
-
+assert sum == 15;

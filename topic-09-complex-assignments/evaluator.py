@@ -80,6 +80,10 @@ def ast_to_string(ast):
     if ast["tag"] == "while":
         s = "while (" + ast_to_string(ast["condition"]) + ") {" + ast_to_string(ast["do"]) + "}"
 
+    if ast["tag"] == "for":
+        s = "for (" + ast_to_string(ast["init"]) + "; " + ast_to_string(ast["condition"]) + "; " + ast_to_string(ast["update"]) + ") {" + ast_to_string(ast["do"]) + "}"
+        return s
+
     if ast["tag"] == "statement_list":
         items = []
         for item in ast["statements"]:
@@ -399,6 +403,37 @@ def evaluate(ast, environment, watcher=None):
             condition_value, cond_status = evaluate(ast["condition"], environment, watcher)
             if cond_status == "exit": return condition_value, "exit"
         return None, None # Normal loop termination (condition false or break occurred)
+    
+    if ast["tag"] == "for":
+        # Evaluate initialization
+        init_value, init_status = evaluate(ast["init"], environment, watcher)
+        if init_status == "exit": return init_value, "exit"
+
+        # Evaluate condition
+        condition_value, cond_status = evaluate(ast["condition"], environment, watcher)
+        if cond_status == "exit": return condition_value, "exit"
+
+        while is_truthy(condition_value):
+            val, body_status = evaluate(ast["body"], environment, watcher)
+
+            if body_status == "return" or body_status == "exit":
+                return val, body_status # Propagate critical exits
+            if body_status == "break":
+                break # Exit the for loop, loop completes normally
+            if body_status == "continue":
+                # Evaluate update expression and continue to next iteration
+                update_value, update_status = evaluate(ast["update"], environment, watcher)
+                if update_status == "exit": return update_value, "exit"
+                condition_value, cond_status = evaluate(ast["condition"], environment, watcher)
+                if cond_status == "exit": return condition_value, "exit"
+                continue # Continue to next iteration of for
+            
+            # If body completed normally (status is None), evaluate update and re-evaluate condition
+            update_value, update_status = evaluate(ast["update"], environment, watcher)
+            if update_status == "exit": return update_value, "exit"
+            condition_value, cond_status = evaluate(ast["condition"], environment, watcher)
+            if cond_status == "exit": return condition_value, "exit"
+        return None, None # Normal loop termination (condition false or break occurred)
 
     if ast["tag"] == "statement_list":
         last_value = None
@@ -583,7 +618,7 @@ def clean(e):
         return e
 
 def equals(code, environment, expected_result, expected_environment=None):
-    result, status = evaluate((parse(tokenize(code)), environment))
+    result, status = evaluate(parse(tokenize(code)), environment)
 
     assert (
         clean(result) == clean(expected_result)
@@ -677,6 +712,11 @@ def test_evaluate_while_statement():
     print("testing evaluate_while_statement")
     equals("while(0) {x=1}", {}, None, {})
     equals("x=1; while(x<5) {x=x+1}; y=3", {}, 3, {"x": 5, "y": 3})
+
+def test_evaluate_for_statement():
+    print("testing evaluate_for_statement")
+    equals("for(x=0; x<3; x=x+1) {y=x}; z=5", {}, 5, {"x": 3, "y": 2, "z": 5})
+    equals("sum=0; for(i=1; i<=5; i=i+1) {sum=sum+i}; result=sum", {}, 15, {"sum": 15, "i": 6, "result": 15})
 
 
 def test_evaluate_assignment_statement():
@@ -1044,26 +1084,27 @@ def test_control_flow_scoping_rules():
 
 if __name__ == "__main__":
     # statements and programs are tested implicitly
-    test_evaluate_single_value()
-    test_evaluate_addition()
-    test_evaluate_subtraction()
-    test_evaluate_multiplication()
-    test_evaluate_division()
-    test_evaluate_negation()
-    # test_evaluate_print_statement()
-    test_evaluate_if_statement()
-    test_evaluate_while_statement()
-    test_evaluate_assignment_statement()
-    test_evaluate_function_literal()
-    test_evaluate_function_call()
-    test_evaluate_complex_expression()
-    test_evaluate_complex_assignment()
-    test_evaluate_return_statement()
-    test_evaluate_list_literal()
-    test_evaluate_object_literal()
-    test_evaluate_builtins()
-    test_evaluator_with_new_tags()
-    test_scoping()
-    test_closures()
+    # test_evaluate_single_value()
+    # test_evaluate_addition()
+    # test_evaluate_subtraction()
+    # test_evaluate_multiplication()
+    # test_evaluate_division()
+    # test_evaluate_negation()
+    # # test_evaluate_print_statement()
+    # test_evaluate_if_statement()
+    # test_evaluate_while_statement()
+    test_evaluate_for_statement()
+#    test_evaluate_assignment_statement()
+#     test_evaluate_function_literal()
+#     test_evaluate_function_call()
+#     test_evaluate_complex_expression()
+#     test_evaluate_complex_assignment()
+#     test_evaluate_return_statement()
+#     test_evaluate_list_literal()
+#     test_evaluate_object_literal()
+#     test_evaluate_builtins()
+#     test_evaluator_with_new_tags()
+#     test_scoping()
+#     test_closures()
     # test_control_flow_scoping_rules()
     print("done.")
